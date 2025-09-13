@@ -65,10 +65,17 @@ async def setup_webhook():
     else:
         logger.error("Failed to set webhook.")
 
-if __name__ == "__main__":
-    # Run webhook setup as an async task before starting Flask
-    import asyncio
-    asyncio.run(setup_webhook())
+# This function will be called once when the first request comes in
+# which is suitable for Gunicorn environments.
+@app.before_first_request
+async def initialize_webhook():
+    await setup_webhook()
 
-    # Start Flask server
-    app.run(host="0.0.0.0", port=8443)
+# The Flask app instance itself is what Gunicorn serves.
+# The __name__ == "__main__" block is removed as Gunicorn will manage the app's lifecycle.
+
+# For local testing, you can uncomment the following block:
+# if __name__ == "__main__":
+#     import asyncio
+#     asyncio.run(initialize_webhook())
+#     app.run(host="0.0.0.0", port=10000, debug=True) # Changed port to 10000
