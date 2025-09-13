@@ -168,15 +168,18 @@ class TextChunker:
         Returns:
             Cleaned text
         """
-        # Remove excessive whitespace
-        text = re.sub(r'\s+', ' ', text)
-        
+        # Remove null characters
+        text = text.replace("\u0000", "")
+
+        # Normalize whitespace (collapse multiple spaces, strip leading/trailing spaces)
+        text = re.sub(r'\s+', ' ', text).strip()
+
         # Remove page markers
         text = re.sub(r'--- Page \d+ ---', '', text)
-        
+
         # Remove excessive newlines
         text = re.sub(r'\n+', '\n', text)
-        
+
         return text.strip()
     
     def chunk_with_metadata(self, text: str, filename: str, 
