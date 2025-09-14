@@ -52,8 +52,27 @@ class RAGService:
             has_sufficient_data = self._check_data_sufficiency(retrieved_chunks)
             
             if not has_sufficient_data:
-                # Use OpenRouter's knowledge base as fallback
-                return self._generate_openrouter_fallback(user_query, persona, retrieved_chunks)
+                # Use OpenRouter's knowledge base as fallback, but only if API key is present
+                if self.openrouter_api_key:
+                    return self._generate_openrouter_fallback(user_query, persona, retrieved_chunks)
+                else:
+                    # If no sufficient data and LLM is also disabled, return a clearer message
+                    answer_text = "(LLM disabled: OPENROUTER_API_KEY missing) - No sufficient data retrieved from documents."
+                    if retrieved_chunks:
+                        answer_text += " However, relevant document chunks were found:"
+                        for i, chunk in enumerate(retrieved_chunks):
+                            answer_text += f"\n--- Chunk {i+1} from {chunk['filename']} ---\n"
+                            answer_text += chunk['text'][:200] + "...\n"
+
+                    return {
+                        'answer': answer_text,
+                        'sources': [],
+                        'retrieved_chunks': len(retrieved_chunks),
+                        'persona': persona,
+                        'query': user_query,
+                        'data_source': 'pdf_documents',
+                        'fallback': True # Indicate that LLM generation was skipped
+                    }
             
             # Step 4: Build context with citations
             context, sources = self._build_context_with_citations(retrieved_chunks)

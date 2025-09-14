@@ -51,8 +51,17 @@ def process_storage_pdfs():
             return
         
         print(f"Found {len(pdf_files)} PDFs in storage folder. Processing...")
+
+        # Get already processed filenames from Pinecone
+        # Assuming a default namespace for now. In a multi-user system, this would be user-specific.
+        processed_filenames = vector_store.get_processed_filenames_in_namespace(namespace="default")
+        print(f"Already processed PDFs in Pinecone: {processed_filenames}")
         
         for filename in pdf_files:
+            if filename in processed_filenames:
+                print(f"Skipping {filename}: Already processed.")
+                continue
+            
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             try:
                 # Extract text

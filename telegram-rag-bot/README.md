@@ -20,24 +20,27 @@ This directory contains the necessary code to integrate a Telegram bot client wi
 4. `@BotFather` will provide you with an `HTTP API Token` (e.g., `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`). Keep this token safe.
 
 ### 2. Configure Environment Variables
+
+**⚠️ SECURITY WARNING:** Never commit `.env` files or hardcode API keys directly into your repository. Use environment variables for sensitive information.
+
 Create a `.env` file inside the `telegram-rag-bot` directory with the following variables:
 
 ```
 TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN_HERE
 BACKEND_URL=http://localhost:8000 # Or the URL of your RAG Flask backend
-WEBHOOK_URL=https://your-public-domain.com/telegram-webhook # Public HTTPS URL for your webhook
+WEBHOOK_URL=https://your-public-domain.com # Public HTTPS URL for your webhook (NO /telegram-webhook or bot token appended here)
 ```
 
 - **`TELEGRAM_BOT_TOKEN`**: The API token you received from `@BotFather`.
 - **`BACKEND_URL`**: The URL where your main RAG Flask backend is running (e.g., `http://localhost:8000` if running locally, or its public URL if deployed).
-- **`WEBHOOK_URL`**: This MUST be a publicly accessible **HTTPS** URL. Telegram requires secure connections for webhooks. For local testing, you can use tools like `ngrok`.
+- **`WEBHOOK_URL`**: This MUST be a publicly accessible **HTTPS** base URL. Telegram requires secure connections. For local testing, you will get this from `ngrok` or `cloudflared`. **Do NOT append `/telegram-webhook` or your bot token here; the `src/server.py` script will append the bot token automatically.**
 
-**Example `.env` for local testing with `ngrok`:**
-(Assuming `ngrok` provides `https://your-ngrok-id.ngrok-free.app`)
+**Example `.env` for local testing with `cloudflared` (or `ngrok`):**
+(Assuming `cloudflared` provides `https://flows-archives-gs-references.trycloudflare.com`)
 ```
 TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN_HERE
 BACKEND_URL=http://localhost:8000
-WEBHOOK_URL=https://your-ngrok-id.ngrok-free.app/telegram-webhook
+WEBHOOK_URL=https://flows-archives-gs-references.trycloudflare.com
 ```
 
 ### 3. Install Dependencies

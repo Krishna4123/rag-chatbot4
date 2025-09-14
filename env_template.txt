@@ -1,0 +1,13 @@
+# RAG Backend Environment Variables for Render
+PINECONE_API_KEY=your_pinecone_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+PINECONE_INDEX=career-rag-index
+HF_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+PDF_STORAGE_DIR=storage/pdfs
+PORT=8000
+
+# Telegram Bot Environment Variables for Render
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+BACKEND_URL=http://rag-backend-api:8000
+WEBHOOK_URL=https://telegram-rag-webhook-xxxx.onrender.com
+PORT=10000

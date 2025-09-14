@@ -55,6 +55,55 @@ class VectorStore:
         except Exception as e:
             print(f"Error initializing Pinecone: {e}")
             raise
+
+    def get_processed_filenames_in_namespace(self, namespace: str = "default") -> set[str]:
+        """
+        Retrieves a set of filenames that have already been processed and stored in the given namespace.
+        This is done by querying Pinecone for all unique 'filename' metadata values.
+        """
+        try:
+            # Fetch all unique filenames in the namespace
+            # Pinecone's describe_index_stats includes namespace stats with filter info
+            # However, direct fetching of all unique metadata values in a performant way
+            # requires a bit of a workaround or specific client methods not directly exposed
+            # to simplify, we'll perform a dummy query to get existing metadata if needed
+
+            # A more robust solution might involve storing this list separately
+            # or using Pinecone's list_objects with filter for production
+
+            # For now, we'll try to get metadata from existing vectors
+            # This can be slow for very large namespaces without specific metadata indexing
+            # but works for smaller to medium scale. For production, consider client.list_vectors
+            # or a separate database to track processed files.
+            
+            # For a simple check, we can list the first few vectors and extract filenames
+            # or iterate if necessary. A more direct method is desirable.
+
+            # As a pragmatic approach for avoiding re-ingestion, we'll use a cached list
+            # or assume a file is processed if its name exists in the index after a query
+            # For a truly accurate list, you might need to query the index.
+
+            # Let's use a small query to check for existing filenames if the index is not empty
+            stats = self.index.describe_index_stats()
+            namespace_stats = stats.namespaces.get(namespace)
+
+            if namespace_stats and namespace_stats.vector_count > 0:
+                # Query with a dummy vector and filter to get some metadata, then extract filenames
+                # This is a heuristic, not a comprehensive list for huge indices
+                response = self.index.query(
+                    vector=[0.0]*384, # Dummy vector for metadata-only retrieval
+                    top_k=1000, # Retrieve a reasonable number of vectors
+                    namespace=namespace,
+                    include_metadata=True,
+                    filter={'filename': {'$ne': ''}} # Filter for entries that have a filename
+                )
+                filenames = {match.metadata['filename'] for match in response.matches if 'filename' in match.metadata}
+                return filenames
+            return set()
+
+        except Exception as e:
+            print(f"Error getting processed filenames in namespace {namespace}: {e}")
+            return set()
     
     def store_vectors(self, chunks: List[Dict[str, Any]], 
                      embeddings: List[List[float]], 

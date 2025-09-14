@@ -4,14 +4,40 @@ Handles PDF file processing and text extraction
 """
 
 import os
-import PyPDF2
+import logging
+import re
+from pypdf import PdfReader
 from typing import List, Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 class PDFProcessor:
     """Handles PDF text extraction and processing"""
     
     def __init__(self):
         self.supported_formats = ['.pdf']
+
+    def _clean_extracted_text(self, text: str) -> str:
+        """
+        Apply immediate cleaning to text extracted from PDF.
+        This handles common PDF extraction artifacts like hyphens, ligatures, and excessive spaces.
+        """
+        # Remove common ligatures (fi, fl, etc.) which often appear as single chars or weird symbols
+        text = text.replace('ﬁ', 'fi').replace('ﬂ', 'fl')
+        
+        # Replace multiple newlines with a single one (or space, depending on desired paragraph separation)
+        text = re.sub(r'\n\s*\n', '\n', text) # Collapse multiple newlines
+        
+        # Remove hyphenation at line breaks - simple heuristic
+        text = re.sub(r'(\w+)-\n(\w+)', r'\1\2', text) 
+        
+        # Normalize whitespace
+        text = re.sub(r'\s+', ' ', text).strip()
+        
+        # Remove null characters
+        text = text.replace("\u0000", "")
+        
+        return text
     
     def extract_text(self, filepath: str) -> Optional[str]:
         """
@@ -24,24 +50,25 @@ class PDFProcessor:
             Extracted text or None if extraction fails
         """
         try:
-            text = ""
+            text_content = ""
             with open(filepath, 'rb') as file:
-                pdf_reader = PyPDF2.PdfReader(file)
+                pdf_reader = PdfReader(file) # Use pypdf.PdfReader
                 
                 for page_num, page in enumerate(pdf_reader.pages):
                     try:
                         page_text = page.extract_text()
                         if page_text:
-                            text += f"\n--- Page {page_num + 1} ---\n"
-                            text += page_text
+                            cleaned_page_text = self._clean_extracted_text(page_text)
+                            text_content += f"\n--- Page {page_num + 1} ---\n"
+                            text_content += cleaned_page_text
                     except Exception as e:
-                        print(f"Error extracting page {page_num + 1}: {e}")
+                        logger.warning(f"Error extracting text from page {page_num + 1} of {filepath}: {e}")
                         continue
             
-            return text.strip() if text else None
+            return text_content.strip() if text_content else None
             
         except Exception as e:
-            print(f"Error processing PDF {filepath}: {e}")
+            logger.error(f"Error processing PDF {filepath}: {e}")
             return None
     
     def extract_metadata(self, filepath: str) -> Dict[str, any]:
@@ -66,7 +93,7 @@ class PDFProcessor:
             }
             
             with open(filepath, 'rb') as file:
-                pdf_reader = PyPDF2.PdfReader(file)
+                pdf_reader = PdfReader(file) # Use pypdf.PdfReader
                 metadata['pages'] = len(pdf_reader.pages)
                 
                 if pdf_reader.metadata:
@@ -78,7 +105,7 @@ class PDFProcessor:
             return metadata
             
         except Exception as e:
-            print(f"Error extracting metadata from {filepath}: {e}")
+            logger.error(f"Error extracting metadata from {filepath}: {e}")
             return {'filename': os.path.basename(filepath), 'error': str(e)}
     
     def process_directory(self, directory_path: str) -> List[Dict[str, any]]:
@@ -123,7 +150,7 @@ class PDFProcessor:
         """
         try:
             with open(filepath, 'rb') as file:
-                PyPDF2.PdfReader(file)
+                PdfReader(file) # Use pypdf.PdfReader
             return True
         except:
             return False

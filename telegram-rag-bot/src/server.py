@@ -6,6 +6,9 @@ from flask import Flask, request, jsonify
 from telegram import Update
 from telegram.constants import ParseMode
 
+import asyncio
+import threading
+
 from .telegram_bot import TelegramRAGBot
 
 # Load environment variables
@@ -38,6 +41,9 @@ app = Flask(__name__)
 # Initialize Telegram bot
 bot = TelegramRAGBot(TELEGRAM_BOT_TOKEN, BACKEND_URL)
 
+# Global flag to track if webhook has been set
+webhook_set = False
+
 @app.route('/', methods=['GET'])
 def health_check():
     """Health check endpoint for the Flask server."""
@@ -46,9 +52,18 @@ def health_check():
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 async def telegram_webhook():
     """Webhook endpoint for Telegram updates."""
+    global webhook_set
+    
+    # Set webhook on first request if not already set
+    if not webhook_set:
+        await setup_webhook()
+        webhook_set = True
+    
     try:
         update = Update.de_json(request.get_json(force=True), bot.application.bot)
-        await bot.application.update_queue.put(update)
+        # Process the update using the bot's application
+        async with bot.application: # Ensure bot application is properly initialized for async operations
+            await bot.application.process_update(update)
         return jsonify({'status': 'ok'}), 200
     except Exception as e:
         logger.error(f"Error processing Telegram webhook: {e}")
@@ -65,17 +80,9 @@ async def setup_webhook():
     else:
         logger.error("Failed to set webhook.")
 
-# This function will be called once when the first request comes in
-# which is suitable for Gunicorn environments.
-@app.before_first_request
-async def initialize_webhook():
-    await setup_webhook()
-
 # The Flask app instance itself is what Gunicorn serves.
-# The __name__ == "__main__" block is removed as Gunicorn will manage the app's lifecycle.
-
 # For local testing, you can uncomment the following block:
-# if __name__ == "__main__":
-#     import asyncio
-#     asyncio.run(initialize_webhook())
-#     app.run(host="0.0.0.0", port=10000, debug=True) # Changed port to 10000
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(setup_webhook())
+    app.run(host="0.0.0.0", port=10000, debug=True)
