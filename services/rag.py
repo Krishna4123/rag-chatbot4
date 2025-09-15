@@ -9,6 +9,9 @@ import json
 from typing import List, Dict, Any, Optional
 from services.embeddings import EmbeddingService
 from services.vector_store import VectorStore
+import logging
+
+logger = logging.getLogger(__name__)
 
 class RAGService:
     """Orchestrates RAG pipeline for medical guidance chatbot"""
@@ -47,6 +50,9 @@ class RAGService:
                 top_k=8,
                 namespace=namespace
             )
+            logger.info(f"Retrieved {len(retrieved_chunks)} chunks for query '{user_query}' in namespace '{namespace}'.")
+            for i, chunk in enumerate(retrieved_chunks):
+                logger.debug(f"Chunk {i+1}: Filename={chunk.get('filename', 'N/A')}, Score={chunk.get('score', 'N/A')}, Text_Preview={chunk.get('text', '')[:100]}...")
             
             # Step 3: Check if we have sufficient relevant data
             has_sufficient_data = self._check_data_sufficiency(retrieved_chunks)
@@ -99,17 +105,13 @@ class RAGService:
         if not chunks:
             return False
         
-        # Check if we have at least 3 chunks with reasonable relevance scores
-        high_relevance_chunks = [chunk for chunk in chunks if chunk.get('score', 0) > 0.3]
+        # Check if we have at least 1 chunk with reasonable relevance scores
+        high_relevance_chunks = [chunk for chunk in chunks if chunk.get('score', 0) > 0.1]
         
-        if len(high_relevance_chunks) < 3:
+        if len(high_relevance_chunks) < 1:
             return False
         
-        # Check if the total context length is substantial
-        total_context_length = sum(len(chunk.get('text', '')) for chunk in chunks)
-        
-        if total_context_length < 500:  # Less than 500 characters
-            return False
+        # Removed the check for total_context_length
         
         return True
     
@@ -161,7 +163,7 @@ Please provide detailed, accurate medical information while emphasizing that thi
                     {"role": "user", "content": user_prompt}
                 ],
                 "temperature": 0.3,
-                "max_tokens": 1200
+                "max_tokens": 200  # Reduced max_tokens for shorter output
             }
             
             response = requests.post(
@@ -272,7 +274,7 @@ Please provide a helpful, accurate response based on the context above. Include 
                     {"role": "user", "content": user_prompt}
                 ],
                 "temperature": 0.3,
-                "max_tokens": 1000
+                "max_tokens": 200  # Reduced max_tokens for shorter output
             }
             
             # Make API request

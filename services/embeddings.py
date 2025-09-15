@@ -1,4 +1,4 @@
-"""
+b"""
 Embeddings service using Hugging Face sentence-transformers
 Handles text embedding generation for vector storage
 """

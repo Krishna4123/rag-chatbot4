@@ -5,10 +5,15 @@ Handles PDF ingestion, vector operations, and medical chat queries
 
 import os
 import json
+import warnings
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+
+# Filter out CryptographyDeprecationWarning from pypdf
+from cryptography.utils import CryptographyDeprecationWarning
+warnings.filterwarnings("ignore", category=CryptographyDeprecationWarning)
 
 from services.pdf_ingest import PDFProcessor
 from services.chunker import TextChunker
@@ -219,4 +224,4 @@ if __name__ == '__main__':
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     
     port = int(os.getenv('PORT', 8000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)

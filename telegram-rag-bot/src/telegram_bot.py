@@ -54,7 +54,7 @@ class TelegramRAGBot:
             response = requests.post(
                 chat_url,
                 json=payload,
-                timeout=30
+                timeout=60  # Increased timeout to 60 seconds
             )
             response.raise_for_status() # Raise an exception for HTTP errors
             rag_response = response.json()
